@@ -11,6 +11,7 @@ class _DashPainter extends CustomPainter {
   final StrokeCap strokeCap;
   final PathBuilder? customPath;
   final EdgeInsets padding;
+  final double? animationPercent;
 
   _DashPainter({
     this.strokeWidth = 2,
@@ -21,6 +22,7 @@ class _DashPainter extends CustomPainter {
     this.strokeCap = StrokeCap.butt,
     this.customPath,
     this.padding = EdgeInsets.zero,
+    this.animationPercent,
   }) {
     assert(dashPattern.isNotEmpty, 'Dash Pattern cannot be empty');
   }
@@ -54,7 +56,11 @@ class _DashPainter extends CustomPainter {
       _path = _getPath(size);
     }
 
-    canvas.drawPath(_path, paint);
+    canvas.drawPath(
+        animationPercent != null
+            ? _createAnimatedPath(_path, animationPercent!)
+            : _path,
+        paint);
   }
 
   /// Returns a [Path] based on the the [borderType] parameter
@@ -140,12 +146,63 @@ class _DashPainter extends CustomPainter {
       );
   }
 
+  Path _createAnimatedPath(
+    Path originalPath,
+    double animationPercent,
+  ) {
+    // ComputeMetrics can only be iterated once!
+    final totalLength = originalPath.computeMetrics().fold<double>(
+          0,
+          (double prev, PathMetric metric) => prev + metric.length,
+        );
+
+    final currentLength = totalLength * animationPercent;
+
+    return _extractPathUntilLength(originalPath, currentLength);
+  }
+
+  Path _extractPathUntilLength(
+    Path originalPath,
+    double length,
+  ) {
+    final path = Path();
+    if (length == 0) return path;
+
+    var currentLength = 0.0;
+
+    final metricsIterator = originalPath.computeMetrics().iterator;
+
+    while (metricsIterator.moveNext()) {
+      final metric = metricsIterator.current;
+
+      final nextLength = currentLength + metric.length;
+
+      final isLastSegment = nextLength > length;
+      if (isLastSegment) {
+        final remainingLength = length - currentLength;
+        final pathSegment = metric.extractPath(0, remainingLength);
+
+        path.addPath(pathSegment, Offset.zero);
+        break;
+      } else {
+        // There might be a more efficient way of extracting an entire path
+        final pathSegment = metric.extractPath(0, metric.length);
+        path.addPath(pathSegment, Offset.zero);
+      }
+
+      currentLength = nextLength;
+    }
+
+    return path;
+  }
+
   @override
   bool shouldRepaint(_DashPainter oldDelegate) {
     return oldDelegate.strokeWidth != this.strokeWidth ||
         oldDelegate.color != this.color ||
         oldDelegate.dashPattern != this.dashPattern ||
         oldDelegate.padding != this.padding ||
-        oldDelegate.borderType != this.borderType;
+        oldDelegate.borderType != this.borderType ||
+        oldDelegate.animationPercent != this.animationPercent;
   }
 }
