@@ -26,6 +26,7 @@ class DottedBorder extends StatelessWidget {
   final PathBuilder? customPath;
 
   DottedBorder({
+    super.key,
     required this.child,
     this.color = Colors.black,
     this.strokeWidth = 1,
@@ -79,9 +80,10 @@ class AnimatedDottedBorder extends StatefulWidget {
   final Radius radius;
   final StrokeCap strokeCap;
   final PathBuilder? customPath;
-  final Duration duration;
+  final Animation<double> animation;
 
   AnimatedDottedBorder({
+    super.key,
     required this.child,
     this.color = Colors.black,
     this.strokeWidth = 1,
@@ -92,7 +94,7 @@ class AnimatedDottedBorder extends StatefulWidget {
     this.radius = const Radius.circular(0),
     this.strokeCap = StrokeCap.butt,
     this.customPath,
-    this.duration = const Duration(milliseconds: 500),
+    required this.animation,
   }) {
     assert(_isValidDashPattern(dashPattern), 'Invalid dash pattern');
   }
@@ -101,49 +103,34 @@ class AnimatedDottedBorder extends StatefulWidget {
   State<AnimatedDottedBorder> createState() => _AnimatedDottedBorderState();
 }
 
-class _AnimatedDottedBorderState extends State<AnimatedDottedBorder>
-    with SingleTickerProviderStateMixin {
-  late final _animationController =
-      AnimationController(vsync: this, duration: widget.duration);
-
-  @override
-  void initState() {
-    _animationController.forward();
-    super.initState();
-  }
-
+class _AnimatedDottedBorderState extends State<AnimatedDottedBorder> {
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _animationController.isCompleted
-          ? _animationController.reverse()
-          : _animationController.forward(),
-      child: Stack(
-        children: <Widget>[
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) => CustomPaint(
-                painter: _DashPainter(
-                  padding: widget.borderPadding,
-                  strokeWidth: widget.strokeWidth,
-                  radius: widget.radius,
-                  color: widget.color,
-                  borderType: widget.borderType,
-                  dashPattern: widget.dashPattern,
-                  customPath: widget.customPath,
-                  strokeCap: widget.strokeCap,
-                  animationPercent: _animationController.value,
-                ),
+    return Stack(
+      children: <Widget>[
+        Positioned.fill(
+          child: AnimatedBuilder(
+            animation: widget.animation,
+            builder: (context, child) => CustomPaint(
+              painter: _DashPainter(
+                padding: widget.borderPadding,
+                strokeWidth: widget.strokeWidth,
+                radius: widget.radius,
+                color: widget.color,
+                borderType: widget.borderType,
+                dashPattern: widget.dashPattern,
+                customPath: widget.customPath,
+                strokeCap: widget.strokeCap,
+                animationPercent: widget.animation.value,
               ),
             ),
           ),
-          Padding(
-            padding: widget.padding,
-            child: widget.child,
-          ),
-        ],
-      ),
+        ),
+        Padding(
+          padding: widget.padding,
+          child: widget.child,
+        ),
+      ],
     );
   }
 }
@@ -154,8 +141,8 @@ class _AnimatedDottedBorderState extends State<AnimatedDottedBorder>
 bool _isValidDashPattern(List<double>? dashPattern) {
   Set<double>? _dashSet = dashPattern?.toSet();
   if (_dashSet == null) return false;
-  if (_dashSet.length == 1 && _dashSet.elementAt(0) == 0.0) return false;
-  if (_dashSet.length == 0) return false;
+  // if (_dashSet.length == 1 && _dashSet.elementAt(0) == 0.0) return false;
+  // if (_dashSet.length == 0) return false;
   return true;
 }
 

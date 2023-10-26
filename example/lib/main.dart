@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
-
 import 'package:dotted_border/dotted_border.dart';
+import 'package:flutter/material.dart';
 
 void main() => runApp(MyApp());
 

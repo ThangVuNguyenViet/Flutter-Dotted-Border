@@ -81,6 +81,8 @@ class _DashPainter extends CustomPainter {
         break;
     }
 
+    if (dashPattern.isEmpty || dashPattern.first == 0) return path;
+
     return dashPath(path, dashArray: CircularIntervalList(dashPattern));
   }
 
